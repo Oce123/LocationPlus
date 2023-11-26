@@ -22,6 +22,18 @@ public class Satellite {
         this.satelliteCn0 = cn0;
     }
 
+    public int getSatelliteType() {
+        return satelliteType;
+    }
+
+    public int getSatellitePrn() {
+        return satellitePrn;
+    }
+
+    public float getSatelliteCn0() {
+        return satelliteCn0;
+    }
+
     // [TODO] Implement the toString() method. When the Adapter tries to assign names to items
     // in the ListView, it calls the toString() method of the objects in the ArrayList
     @Override

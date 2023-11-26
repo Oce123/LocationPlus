@@ -14,8 +14,10 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -41,6 +43,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class MapsActivity extends AppCompatActivity implements LocationListener, OnMapReadyCallback {
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 100;
     private Geofence mGeofence;
@@ -52,13 +55,14 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
     private LocationManager mLocationManager;
     private Toolbar mToolbar;
     private boolean autoCenteringEnabled = false;
-    private Marker destinationMarker;
-    private Circle geofenceCircle;
     private LatLng lastKnownLatLng;
     private boolean satelliteInfoVisible = false;
     private List<Satellite> satelliteList = new ArrayList<>();
     private GnssStatus lastGnssStatus;
     private SatelliteAdapter satelliteAdapter;
+    private ToggleButton satelliteButton;
+    private RelativeLayout satellitesPopupContainer;
+    private RecyclerView recyclerViewSatellites;
 
 
 
@@ -68,6 +72,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        //setContentView(R.layout.item_satellite);
 
         // Set up Google Maps
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -92,7 +97,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
                 public void onSatelliteStatusChanged(GnssStatus status) {
                     // Implement behavior when the satellite status is updated
                     // For example, update a list or adapter with satellite information.
-                    handleSatelliteStatus();
+                    handleSatelliteStatus(status);
                 }
             };
             mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
@@ -109,10 +114,20 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
         mToolbar = (Toolbar) findViewById(R.id.appToolbar);
         setSupportActionBar(mToolbar);
 
-        RecyclerView recyclerViewSatellites = findViewById(R.id.recyclerViewSatellites);
-        recyclerViewSatellites.setLayoutManager(new LinearLayoutManager(this));
-        satelliteAdapter = new SatelliteAdapter();
-        recyclerViewSatellites.setAdapter(satelliteAdapter);
+        // Initialize your views
+        satelliteButton = findViewById(R.id.satelliteButton);
+        satellitesPopupContainer = findViewById(R.id.satellitesPopupContainer);
+        recyclerViewSatellites = findViewById(R.id.recyclerViewSatellites);
+
+        // Initialize your adapter and set it to the RecyclerView
+        if (recyclerViewSatellites != null) {
+            // Initialize your adapter and set it to the RecyclerView
+            recyclerViewSatellites.setLayoutManager(new LinearLayoutManager(this));
+            satelliteAdapter = new SatelliteAdapter(satelliteList);
+            recyclerViewSatellites.setAdapter(satelliteAdapter);
+        } else {
+            Log.e("RecyclerView", "RecyclerView is null");
+        }
 
         findViewById(R.id.toggleAutoCenter).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -121,54 +136,24 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
             }
         });
 
-        // Initialize your satellite button
-        findViewById(R.id.satelliteButton).setOnClickListener(new View.OnClickListener() {
+        // Set click listener for the satelliteButton
+        satelliteButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                satelliteInfoVisible = !satelliteInfoVisible;
-
-                // Toggle the visibility of the RecyclerView
-                recyclerViewSatellites.setVisibility(
-                        satelliteInfoVisible ? View.VISIBLE : View.GONE
-                );
-
-                // Utilisez la dernière valeur de GnssStatus pour mettre à jour les informations satellites
-                if (lastGnssStatus != null) {
-                    onSatelliteStatusChanged(lastGnssStatus);
+            public void onClick(View v) {
+                // Toggle visibility of the satellitesPopupContainer
+                if (satellitesPopupContainer.getVisibility() == View.VISIBLE) {
+                    satellitesPopupContainer.setVisibility(View.INVISIBLE);
+                } else {
+                    satellitesPopupContainer.setVisibility(View.VISIBLE);
+                    showSatellitesPopup();
                 }
             }
         });
 
     }
 
-    private void handleSatelliteStatus() {
-        // Implementez le comportement en fonction du statut satellite
-        // Par exemple, mettez à jour une liste ou un adaptateur avec les informations satellites.
-        int satelliteCount = satelliteList.size(); // Utilisez la liste des satellites que vous avez collectée
-
-        List<String> satelliteInfoList = new ArrayList<>();
-
-        for (Satellite satellite : satelliteList) {
-            String satelliteInfo = satellite.toString();
-            satelliteInfoList.add(satelliteInfo);
-        }
-
-        // [TODO] Mettez à jour votre interface utilisateur avec les informations satellites
-        // Par exemple, en utilisant un RecyclerView ou d'autres éléments d'interface utilisateur
-        // Exemple : En supposant que vous ayez un TextView nommé satelliteInfoTextView
-        TextView satelliteInfoTextView = findViewById(R.id.satelliteInfoTextView);
-        satelliteInfoTextView.setText(TextUtils.join("\n", satelliteInfoList));
-        // Mettez à jour l'adaptateur de la RecyclerView
-        satelliteAdapter.setSatelliteList(satelliteList);
-    }
-
-
-    private void onSatelliteStatusChanged(GnssStatus status) {
-        Log.d("Satellite", "onSatelliteStatusChanged called");
-        // Implémentez le comportement lorsque le statut satellite est mis à jour
-        // Par exemple, mettez à jour une liste ou un adaptateur avec les informations satellites.
-
-        satelliteList.clear(); // Effacez la liste actuelle, car elle va être mise à jour
+    private void handleSatelliteStatus(GnssStatus status) {
+        satelliteList.clear(); // Clear actual list
 
         int satelliteCount = status.getSatelliteCount();
 
@@ -181,12 +166,56 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
             satelliteList.add(satellite);
         }
 
-        // Mettez à jour la dernière valeur de GnssStatus
+        // Update the last value of GnssStatus
         lastGnssStatus = status;
 
-        // Maintenant que la liste des satellites est mise à jour, appelez la méthode handleSatelliteStatus
-        handleSatelliteStatus();
+        updateSatelliteInfoUI();
     }
+
+    // Méthode pour mettre à jour l'interface utilisateur avec les informations satellites
+    private void updateSatelliteInfoUI() {
+        // [TODO] Mettez à jour votre interface utilisateur avec les informations satellites
+        TextView satelliteInfoTextView = findViewById(R.id.satelliteInfoTextView);
+
+        List<String> satelliteInfoList = new ArrayList<>();
+
+        for (Satellite satellite : satelliteList) {
+            String satelliteInfo = satellite.toString();
+            satelliteInfoList.add(satelliteInfo);
+        }
+
+        satelliteInfoTextView.setText(TextUtils.join("\n", satelliteInfoList));
+
+        satelliteAdapter.setSatelliteList(satelliteList);
+        satelliteAdapter.notifyDataSetChanged();
+    }
+
+
+    // Méthode pour obtenir la liste mise à jour des satellites
+    public List<Satellite> getSatelliteList() {
+        return satelliteList;
+    }
+
+    private void toggleSatelliteInfoPopup() {
+        // Toggle visibility of the satellitesPopupContainer
+        if (satellitesPopupContainer.getVisibility() == View.VISIBLE) {
+            satellitesPopupContainer.setVisibility(View.INVISIBLE);
+            satelliteButton.setChecked(false);
+        } else {
+            satellitesPopupContainer.setVisibility(View.VISIBLE);
+            showSatellitesPopup();
+            satelliteButton.setChecked(true);
+        }
+    }
+
+    private void showSatellitesPopup() {
+        // [TODO] Update the list of satellites in the adapter
+        // Assuming you have a method getSatelliteList() to get the list of satellites
+        List<Satellite> updatedSatellites = getSatelliteList();
+        satelliteAdapter.setSatelliteList(updatedSatellites);
+        satelliteAdapter.notifyDataSetChanged();
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
