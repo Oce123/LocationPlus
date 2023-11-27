@@ -64,9 +64,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
     private RelativeLayout satellitesPopupContainer;
     private RecyclerView recyclerViewSatellites;
     private TextView satelliteInfoTextView;
-
-
-
+    private Location userLocation;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
@@ -166,8 +164,19 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
             int satelliteType = status.getConstellationType(i);
             int satellitePrn = status.getSvid(i);
             float satelliteCn0 = status.getCn0DbHz(i);
+            float azimuth = status.getAzimuthDegrees(i);
+            float elevation = status.getElevationDegrees(i);
+            float carrierFrequency = status.getCarrierFrequencyHz(i);
+            float carrierNoiseDensity = status.getCn0DbHz(i);
+            String constellationName = getConstellationName();
+            int svid = status.getSvid(i);
 
-            Satellite satellite = new Satellite(satelliteType, satellitePrn, satelliteCn0);
+            Location satelliteLocation = new Location("satellite");
+            satelliteLocation.setLatitude(0.0);
+            satelliteLocation.setLongitude(0.0);
+
+            Satellite satellite = new Satellite(satelliteType, satellitePrn, satelliteCn0,
+                    azimuth, elevation, carrierFrequency, carrierNoiseDensity, constellationName, svid, satelliteLocation);
             satelliteList.add(satellite);
         }
 
@@ -176,6 +185,35 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
 
         // Set text for satelliteInfoTextView
         updateSatelliteInfoUI();
+    }
+
+    public String getConstellationName() {
+        if (userLocation != null && lastGnssStatus != null && !satelliteList.isEmpty()) {
+            Satellite satellite = satelliteList.get(0); // Utilisez le satellite approprié selon votre logique
+
+            // Calculer la distance entre la position de l'utilisateur et la position du satellite
+            float distance = userLocation.distanceTo(satellite.getLocation());
+
+            if (distance < 100) {
+                return "GPS";
+            } else {
+                return "Unknown";
+            }
+        } else {
+            return "Unknown";
+        }
+    }
+
+
+
+    private double calculateDistance(Location location1, Location location2) {
+        // Exemple simplifié : utilisez la formule de distance euclidienne
+        double lat1 = location1.getLatitude();
+        double lon1 = location1.getLongitude();
+        double lat2 = location2.getLatitude();
+        double lon2 = location2.getLongitude();
+
+        return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
     }
 
     // Méthode pour mettre à jour l'interface utilisateur avec les informations satellites
@@ -326,7 +364,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
             mMap.addMarker(new MarkerOptions().position(lastKnownLatLng).title("Ma Position"));
             mMap.animateCamera(CameraUpdateFactory.newLatLng(lastKnownLatLng));
         }
-
+        userLocation = location;
     }
 
     private void toggleAutoCentering() {

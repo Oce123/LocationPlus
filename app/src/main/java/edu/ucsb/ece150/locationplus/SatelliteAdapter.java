@@ -34,7 +34,17 @@ public class SatelliteAdapter extends RecyclerView.Adapter<SatelliteAdapter.View
         }
 
         public void bind(Satellite satellite) {
-            satelliteInfoTextView.setText(satellite.toString());
+            satelliteInfoTextView.setText(
+                    "Type: " + satellite.getSatelliteType() +
+                            ", PRN: " + satellite.getSatellitePrn() +
+                            ", C/N0: " + satellite.getSatelliteCn0() +
+                            ", Azimuth: " + satellite.getAzimuth() +
+                            ", Elevation: " + satellite.getElevation() +
+                            ", Carrier Frequency: " + satellite.getCarrierFrequency() +
+                            ", C/N0: " + satellite.getCarrierNoiseDensity() +
+                            ", Constellation: " + satellite.getConstellationName() +
+                            ", SVID:" + satellite.getSvid()
+            );
         }
     }
 
