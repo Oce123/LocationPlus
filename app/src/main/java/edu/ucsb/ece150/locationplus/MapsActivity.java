@@ -63,6 +63,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
     private ToggleButton satelliteButton;
     private RelativeLayout satellitesPopupContainer;
     private RecyclerView recyclerViewSatellites;
+    private TextView satelliteInfoTextView;
 
 
 
@@ -143,12 +144,16 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
                 // Toggle visibility of the satellitesPopupContainer
                 if (satellitesPopupContainer.getVisibility() == View.VISIBLE) {
                     satellitesPopupContainer.setVisibility(View.INVISIBLE);
+                    satelliteInfoTextView.setVisibility(View.INVISIBLE); // Hide the TextView
                 } else {
                     satellitesPopupContainer.setVisibility(View.VISIBLE);
                     showSatellitesPopup();
+                    satelliteInfoTextView.setVisibility(View.VISIBLE); // Show the TextView
                 }
             }
         });
+        // Initialize satelliteInfoTextView
+        satelliteInfoTextView = findViewById(R.id.satelliteInfoTextView);
 
     }
 
@@ -169,6 +174,7 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
         // Update the last value of GnssStatus
         lastGnssStatus = status;
 
+        // Set text for satelliteInfoTextView
         updateSatelliteInfoUI();
     }
 
@@ -214,6 +220,9 @@ public class MapsActivity extends AppCompatActivity implements LocationListener,
         List<Satellite> updatedSatellites = getSatelliteList();
         satelliteAdapter.setSatelliteList(updatedSatellites);
         satelliteAdapter.notifyDataSetChanged();
+
+        // Set text for satelliteInfoTextView
+        updateSatelliteInfoUI();
     }
 
 
